@@ -8,6 +8,7 @@ from src.utils import exe_cmd, backup_db, write_log
 from src.C_WeCom import WeCom
 
 
+# todo exclude not complete
 def print_help():
     print("-h       --help              show this help\n"
           "-l       --list              list all media\n"
@@ -242,7 +243,7 @@ class PTMM:
                 exe_cmd(["mv", old_link_path, new_link_path])
 
         if new_source_path != "":
-            confirm = input("Source path changed, re-scan now? Y/n")
+            confirm = input("Source path changed, re-scan now? Y/n: ")
             if confirm == "y" or confirm == "Y" or confirm == "":
                 self.media_scan()
 
@@ -283,12 +284,12 @@ class PTMM:
             # ask for confirmation to delete and no log
             else:
                 for delete_media_name in delete_list:
-                    confirm = input(f"Deleting {delete_media_name} ,confirm? Y/n")
+                    confirm = input(f"Deleting {delete_media_name} ,confirm? Y/n: ")
                     if confirm == "y" or confirm == "Y" or confirm == "":
                         self._media_del(entry_name=entry_name, media_name=delete_media_name)
                         print("Deleted")
                 for delete_media_name in delete_list_source:
-                    confirm = input(f"Deleting {delete_media_name} (from source) ,confirm? Y/n")
+                    confirm = input(f"Deleting {delete_media_name} (from source) ,confirm? Y/n: ")
                     if confirm == "y" or confirm == "Y" or confirm == "":
                         exe_cmd(["rm", "-rf", os.path.join(source_path, delete_media_name)])
                         print("Deleted")
@@ -315,7 +316,7 @@ class PTMM:
                     write_log(f"[info] Added: {add_media_name}")
             else:
                 for add_media_name in add_list:
-                    confirm = input(f"Deleting {add_media_name} (from source) ,confirm? Y/n")
+                    confirm = input(f"Adding {add_media_name},confirm? Y/n: ")
                     if confirm == "y" or confirm == "Y" or confirm == "":
                         self._media_add(entry_name=entry_name, new_media_name=add_media_name)
                         print("Added")
