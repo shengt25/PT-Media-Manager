@@ -127,8 +127,9 @@ class PTMM:
             if type(data) != list:
                 print(f"\n[{data}]")
             else:
+                print(f"total: {len(data)}")
                 print(f"{'':-<{width_all + 2 * 6 + 4}}")
-                print(f"|  {'id':<{width_id + 2}}|  {'date':<{width_date + 2}}|  {'name':<{width_name + 2}}|")
+                print(f"|  {'id':<{width_id + 2}}|  {'date':<{width_date + 2}}|  {'name':<{width_name + 2}}")
                 print(f"{'':-<{width_id + width_date + width_name + 2 * 6 + 4}}")
                 for data_single in data:
                     width_name_remain = len(data_single[1])
