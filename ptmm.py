@@ -65,10 +65,12 @@ class PTMM:
                     duplicate = 1
         return duplicate
 
-    def _system_hidden_file(self, filename):
+    def _system_hidden_file(self, media_path: str):
         result = 0
-        if filename == ".DS_Store" or filename[:2] == "._":
-            result = 1
+        if os.path.isf(media_path):
+            filename = media_path[media_path.rfind("/") + 1:]
+            if filename == ".DS_Store" or filename[:2] == "._":
+                result = 1
         return result
 
     def _only_system_hidden_file(self, media_path):
@@ -80,7 +82,7 @@ class PTMM:
             for root, dirs, files in os.walk(media_path):
                 for file in files:
                     file_count += 1
-                    if self._system_hidden_file(file) == 1:
+                    if self._system_hidden_file(os.path.join(root, file)) == 1:
                         system_hidden_file_count += 1
             if file_count == system_hidden_file_count:
                 result = 1
@@ -115,11 +117,11 @@ class PTMM:
         elif os.path.isdir(os.path.join(source_path, new_media_name)):
             for root, dirs, files in os.walk(os.path.join(source_path, new_media_name)):
                 exe_cmd(["mkdir", "-p", root.replace(source_path, link_path, 1)])
-
-                for ext in self.ignore_ext:
-                    for file in files:
-                        if file[-1 * len(ext):] == ext:
+                for file in files:
+                    for ext in self.ignore_ext:
+                        if file[-1 * len(ext):] == ext or self._system_hidden_file(str(os.path.join(root, file))) == 1:
                             files.remove(file)
+                            break
 
                 for file in files:
                     exe_cmd(
@@ -312,11 +314,15 @@ class PTMM:
                     if confirm == "y" or confirm == "Y" or confirm == "":
                         self._media_del(entry_name=entry_name, media_name=delete_media_name)
                         print("Deleted")
+                    else:
+                        print("Skipped")
                 for delete_media_name in delete_list_source:
                     confirm = input(f"Deleting {delete_media_name} (from source) ,confirm? Y/n: ")
                     if confirm == "y" or confirm == "Y" or confirm == "":
                         exe_cmd(["rm", "-rf", os.path.join(source_path, delete_media_name)])
                         print("Deleted")
+                    else:
+                        print("Skipped")
 
             # get media name from source path
             media_name_all = os.listdir(source_path)
@@ -330,10 +336,10 @@ class PTMM:
                 media_name_all.append(media_name.replace(source_path + "/", ""))
             # add to add list
             for media_name in media_name_all:
-                if self._is_incomplete(media_path=os.path.join(source_path, media_name)) == 0 \
-                        and self._only_system_hidden_file(media_path=os.path.join(source_path, media_name)) == 0 \
-                        and self._system_hidden_file(filename=media_name) == 0:
-                    if not self._check_exist(entry_name=entry_name, media_name=media_name):
+                if not self._check_exist(entry_name=entry_name, media_name=media_name):
+                    if self._is_incomplete(media_path=os.path.join(source_path, media_name)) == 0 \
+                            and self._only_system_hidden_file(media_path=os.path.join(source_path, media_name)) == 0 \
+                            and self._system_hidden_file(media_path=os.path.join(source_path, media_name)) == 0:
                         add_list.append(media_name)
             # add (and log)
             if silent:
@@ -342,10 +348,12 @@ class PTMM:
                     write_log(f"[info] Added: {add_media_name}")
             else:
                 for add_media_name in add_list:
-                    confirm = input(f"Adding {add_media_name},confirm? Y/n: ")
+                    confirm = input(f"Adding {add_media_name}, confirm? Y/n: ")
                     if confirm == "y" or confirm == "Y" or confirm == "":
                         self._media_add(entry_name=entry_name, new_media_name=add_media_name)
                         print("Added")
+                    else:
+                        print("Skipped")
 
     def media_del_manually(self):
         # list and select entry
@@ -361,6 +369,7 @@ class PTMM:
         confirm = input("Confirm? Y/n: ")
         if confirm == "y" or confirm == "Y" or confirm == "":
             self._media_del(entry_name=entry_name, media_name=media_name)
+            print("Deleted")
 
     def commit(self):
         self.database.commit()
