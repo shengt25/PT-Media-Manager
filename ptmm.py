@@ -67,7 +67,7 @@ class PTMM:
 
     def _system_hidden_file(self, media_path: str):
         result = 0
-        if os.path.isf(media_path):
+        if os.path.isfile(media_path):
             filename = media_path[media_path.rfind("/") + 1:]
             if filename == ".DS_Store" or filename[:2] == "._":
                 result = 1
