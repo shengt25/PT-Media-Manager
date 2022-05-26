@@ -4,11 +4,20 @@ import sys
 import readline  # Don't delete this, so you can use arrow key when input string
 from datetime import datetime
 from src.C_Database import MediaDB
-from src.utils import exe_cmd, backup_db
+from src.utils import exe_cmd, backup_db, write_log
 from src.C_WeCom import WeCom
 
 
-# todo backup
+def print_help():
+    print("-h       --help              show this help\n"
+          "-l       --list              list all media\n"
+          "-s       --scan              scan media in all source and make link\n"
+          "-ss      --scan-silently     scan silently(no confirmation)\n"
+          "-a       --add-entry         add entry(source path, target link path)\n"
+          "-d       --del-entry         delete entry and delete the target link path\n"
+          "-e       --edit-entry        edit entry name, source path or link path\n"
+          "-lp      --list-path         list all entry path\n"
+          "-dm      --del-media         delete media manually(debug)\n")
 
 
 def config_loader():
@@ -163,9 +172,9 @@ class PTMM:
     def entry_add(self):
         # entry name no duplicated
         new_entry_name = input("Please input new entry name: ")
-        current_entry_all = self.database.entry_get()
         if new_entry_name == "":
             exit(1)
+        current_entry_all = self.database.entry_get()
         if new_entry_name in current_entry_all:
             print(f"{new_entry_name} already exist")
             exit(1)
@@ -200,7 +209,7 @@ class PTMM:
     def entry_del(self):
         entry_name = self._entry_selector()
         print(f"All hard link files in {entry_name} will be deleted. (Original files will NOT be deleted)")
-        confirm = input("Confirm? y/n: ")
+        confirm = input("Confirm? y/N: ")
         if confirm == "y" or confirm == "Y":
             link_path = self.database.path_get(entry_name)[2]
             exe_cmd(["rm", "-rf", link_path])
@@ -233,45 +242,60 @@ class PTMM:
                 exe_cmd(["mv", old_link_path, new_link_path])
 
         if new_source_path != "":
-            scan = input("Source path changed, re-scan now? [y/n]")
-            if scan == "y" or scan == "Y":
+            confirm = input("Source path changed, re-scan now? Y/n")
+            if confirm == "y" or confirm == "Y" or confirm == "":
                 self.media_scan()
 
-    def media_scan(self):
-        delete_list = []
-        add_list = []
+    def media_scan(self, silent=False):
         entry_all = self.database.entry_get()
+        # loop for every entry
         for entry_name in entry_all:
             delete_list = []
+            delete_list_source = []
             add_list = []
             print(f"\nScanning {entry_name}")
             _, source_path, link_path = self.database.path_get(entry_name=entry_name)
-
-            # delete
+            # get media data in entry
             media_data = self.database.media_get_by_entry(entry_name)
+            # when there is data
             if len(media_data) != 0:
                 for media_data_single in media_data:
                     media_name = media_data_single[1]
-                    # delete link if source not exist
+                    # add link to delete list if source not exist
                     if not os.path.exists(os.path.join(source_path, media_name)):
-                        exe_cmd(["rm", "-rf", os.path.join(link_path, media_name)])
-                        self._media_del(entry_name=entry_name, media_name=media_name)
                         delete_list.append(media_name)
-                    # delete link and source if source only contain system hidden file
+                    # add link and source to delete list if source only contain system hidden file
                     elif self._only_macos_hidden_file(os.path.join(source_path, media_name)) == 1:
-                        exe_cmd(["rm", "-rf", os.path.join(source_path, media_name)])
-                        exe_cmd(["rm", "-rf", os.path.join(link_path, media_name)])
-                        self._media_del(entry_name=entry_name, media_name=media_name)
                         delete_list.append(media_name)
-            if len(delete_list) == 0:
-                print("Deleted: nothing")
+                        delete_list_source.append(media_name)
+            # delete (and log)
+            if silent:
+                for delete_media_name in delete_list:
+                    self._media_del(entry_name=entry_name, media_name=delete_media_name)
+                for delete_media_name in delete_list_source:
+                    exe_cmd(["rm", "-rf", os.path.join(source_path, delete_media_name)])
+                # log
+                if len(delete_list) == 0:
+                    write_log("[info] Deleted: nothing")
+                else:
+                    write_log(f"[info] Deleted link: {delete_list}")
+                    write_log(f"[info] Deleted source: {delete_list_source}")
+            # ask for confirmation to delete and no log
             else:
-                print(f"Deleted: {delete_list}")
+                for delete_media_name in delete_list:
+                    confirm = input(f"Deleting {delete_media_name} ,confirm? Y/n")
+                    if confirm == "y" or confirm == "Y" or confirm == "":
+                        self._media_del(entry_name=entry_name, media_name=delete_media_name)
+                        print("Deleted")
+                for delete_media_name in delete_list_source:
+                    confirm = input(f"Deleting {delete_media_name} (from source) ,confirm? Y/n")
+                    if confirm == "y" or confirm == "Y" or confirm == "":
+                        exe_cmd(["rm", "-rf", os.path.join(source_path, delete_media_name)])
+                        print("Deleted")
 
-            # add
+            # get media name from source path
             media_name_all = os.listdir(source_path)
-
-            # sort
+            # sort by date
             media_name_all_sort = []
             for media_name in media_name_all:
                 media_name_all_sort.append(os.path.join(source_path, media_name))
@@ -279,16 +303,23 @@ class PTMM:
             media_name_all = []
             for media_name in media_name_all_sort:
                 media_name_all.append(media_name.replace(source_path + "/", ""))
-
+            # add to add list
             for media_name in media_name_all:
                 if not (media_name == ".DS_Store" or media_name[:2] == "._"):
                     if not self._check_exist(entry_name=entry_name, media_name=media_name):
-                        self._media_add(entry_name=entry_name, new_media_name=media_name)
                         add_list.append(media_name)
-            if len(add_list) == 0:
-                print("Added: nothing")
+            # add (and log)
+            if silent:
+                for add_media_name in add_list:
+                    self._media_add(entry_name=entry_name, new_media_name=add_media_name)
+                    write_log(f"[info] Added: {add_media_name}")
             else:
-                print(f"Added: {add_list}")
+                for add_media_name in add_list:
+                    confirm = input(f"Deleting {add_media_name} (from source) ,confirm? Y/n")
+                    if confirm == "y" or confirm == "Y" or confirm == "":
+                        self._media_add(entry_name=entry_name, new_media_name=add_media_name)
+                        print("Added")
+
         return delete_list, add_list
 
     def media_del_manually(self):
@@ -302,14 +333,9 @@ class PTMM:
         media_name = self.database.media_get_by_id(entry_name=entry_name, media_id=media_id)[1]
         # confirm delete
         print("Delete:", media_name)
-        confirm = input("Confirm? y/n: ")
-        if confirm == "y" or confirm == "Y":
+        confirm = input("Confirm? Y/n: ")
+        if confirm == "y" or confirm == "Y" or confirm == "":
             self._media_del(entry_name=entry_name, media_name=media_name)
-
-    def background_run(self):
-        delete_list, add_list = self.media_scan()
-        self._wecom_msg(", ".join(delete_list) + "deleted")
-        self._wecom_msg(", ".join(add_list) + "added")
 
     def commit(self):
         self.database.commit()
@@ -322,45 +348,28 @@ if __name__ == "__main__":
     ptmm = PTMM()
     try:
         argv = str(sys.argv[1])
+        if argv == "-h" or argv == "--help":
+            print_help()
+        elif argv == "-l" or argv == "--list-media":
+            ptmm.list_media_all()
+        elif argv == "-s" or argv == "--scan-media":
+            ptmm.media_scan()
+        elif argv == "-ss" or argv == "--scan-silently":
+            ptmm.media_scan(silent=True)
+        elif argv == "-a" or argv == "--add-entry":
+            ptmm.entry_add()
+        elif argv == "-d" or argv == "--del-entry":
+            ptmm.entry_del()
+        elif argv == "-e" or argv == "--edit-entry":
+            ptmm.entry_edit()
+        elif argv == "-lp" or argv == "--list-path":
+            ptmm.list_path_all()
+        elif argv == "-dm" or argv == "--del-media-manually":
+            ptmm.media_del_manually()
+        else:
+            print("use -h or --help for help")
     except IndexError:
-        print("0\t-h     --help\n"
-              "1\t-l     --list-media\n"
-              "2\t-s     --scan-media\n"
-              "3\t-a     --add-entry\n"
-              "4\t-d     --del-entry\n"
-              "5\t-e     --edit-entry\n"
-              "6\t-lp    --list-path\n"
-              "7\t-dm    --del-media-manually\n")
-        argv = input("Please select from menu: ")
-        if argv == "":
-            exit(0)
-    if argv == "-h" or argv == "--help" or argv == "0":
-        print("0\t-h     --help\n"
-              "1\t-l     --list-media\n"
-              "2\t-s     --scan-media\n"
-              "3\t-a     --add-entry\n"
-              "4\t-d     --del-entry\n"
-              "5\t-e     --edit-entry\n"
-              "6\t-lp    --list-path\n"
-              "7\t-dm    --del-media-manually\n")
-    elif argv == "-l" or argv == "--list-media" or argv == "1":
-        ptmm.list_media_all()
-    elif argv == "-s" or argv == "--scan-media" or argv == "2":
-        ptmm.media_scan()
-    elif argv == "-a" or argv == "--add-entry" or argv == "3":
-        ptmm.entry_add()
-    elif argv == "-d" or argv == "--del-entry" or argv == "4":
-        ptmm.entry_del()
-    elif argv == "-e" or argv == "--edit-entry" or argv == "5":
-        ptmm.entry_edit()
-    elif argv == "-lp" or argv == "--list-path" or argv == "6":
-        ptmm.list_path_all()
-    elif argv == "-dm" or argv == "--del-media-manually" or argv == "7":
-        ptmm.media_del_manually()
-    elif argv == "-b":
-        ptmm.background_run()
-    else:
-        print("use -h or --help for help")
+        print_help()
 
     ptmm.commit()
     ptmm.close()
