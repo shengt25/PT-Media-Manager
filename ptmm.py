@@ -28,7 +28,8 @@ def config_loader():
     config.read(os.path.join(working_dir, "ptmm.conf"))
 
     common_settings = [config["common"]["wecom"],
-                       [x.strip() for x in config["common"]["block-ext"].split(",")]]
+                       [x.strip() for x in config["common"]["incomplete-ext"].split(",")],
+                       [x.strip() for x in config["common"]["ignore-ext"].split(",")]]
     wecom_settings = []
     if config["common"]["wecom"] == "yes":
         wecom_settings = [config["wecom"]["corp-id"], config["wecom"]["secret"], config["wecom"]["agent-id"],
@@ -41,7 +42,7 @@ class PTMM:
         backup_db()
         common_settings, wecom_settings = config_loader()
         config_path = os.path.join(os.getenv("HOME"), ".config/ptmm/")
-        self.wecom_enable, self.block_exts = common_settings
+        self.wecom_enable, self.incomplete_ext, self.ignore_ext = common_settings
         self.database = MediaDB(os.path.join(config_path, "ptmm.db"))
         self.wecom_settings = wecom_settings
 
@@ -64,20 +65,42 @@ class PTMM:
                     duplicate = 1
         return duplicate
 
-    def _only_ignore(self, media_path):
-        """:return: return if the path only contain '.DS_Store' and '._*' files, 1 for yes, 0 for no"""
-        macos_hidden_file_count = 0
-        file_count = 0
-        for root, dirs, files in os.walk(media_path):
-            for file in files:
-                file_count += 1
-                if file == ".DS_Store" or file[:2] == "._":
-                    macos_hidden_file_count += 1
-
-        if file_count == macos_hidden_file_count and file_count != 0:
+    def _system_hidden_file(self, filename):
+        result = 0
+        if filename == ".DS_Store" or filename[:2] == "._":
             result = 1
+        return result
+
+    def _only_system_hidden_file(self, media_path):
+        """:return: return if the path only contain '.DS_Store' and '._*' files, 1 for yes, 0 for no"""
+        result = 0
+        system_hidden_file_count = 0
+        file_count = 0
+        if os.path.isdir(media_path):
+            for root, dirs, files in os.walk(media_path):
+                for file in files:
+                    file_count += 1
+                    if self._system_hidden_file(file) == 1:
+                        system_hidden_file_count += 1
+            if file_count == system_hidden_file_count:
+                result = 1
+        return result
+
+    def _is_incomplete(self, media_path):
+        """:return: return if the path contain incomplete file, 1 for yes, 0 for no"""
+        result = 0
+        if os.path.isfile(media_path):
+            for ext in self.incomplete_ext:
+                if media_path[-1 * len(ext):] == ext:
+                    result = 1
+                    break
         else:
-            result = 0
+            for root, dirs, files in os.walk(media_path):
+                for file in files:
+                    for ext in self.incomplete_ext:
+                        if file[-1 * len(ext):] == ext:
+                            result = 1
+                            break
         return result
 
     def _media_add(self, entry_name, new_media_name):
@@ -93,9 +116,9 @@ class PTMM:
             for root, dirs, files in os.walk(os.path.join(source_path, new_media_name)):
                 exe_cmd(["mkdir", "-p", root.replace(source_path, link_path, 1)])
 
-                for block_ext in self.block_exts:
+                for ext in self.ignore_ext:
                     for file in files:
-                        if file[-1 * len(block_ext):] == block_ext:
+                        if file[-1 * len(ext):] == ext:
                             files.remove(file)
 
                 for file in files:
@@ -267,7 +290,7 @@ class PTMM:
                     if not os.path.exists(os.path.join(source_path, media_name)):
                         delete_list.append(media_name)
                     # add link and source to delete list if source only contain system hidden file
-                    elif self._only_ignore(os.path.join(source_path, media_name)) == 1:
+                    elif self._only_system_hidden_file(os.path.join(source_path, media_name)) == 1:
                         delete_list.append(media_name)
                         delete_list_source.append(media_name)
             # delete (and log)
@@ -307,7 +330,9 @@ class PTMM:
                 media_name_all.append(media_name.replace(source_path + "/", ""))
             # add to add list
             for media_name in media_name_all:
-                if not (media_name == ".DS_Store" or media_name[:2] == "._"):
+                if self._is_incomplete(media_path=os.path.join(source_path, media_name)) == 0 \
+                        and self._only_system_hidden_file(media_path=os.path.join(source_path, media_name)) == 0 \
+                        and self._system_hidden_file(filename=media_name) == 0:
                     if not self._check_exist(entry_name=entry_name, media_name=media_name):
                         add_list.append(media_name)
             # add (and log)
