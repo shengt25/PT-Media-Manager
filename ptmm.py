@@ -27,8 +27,8 @@ def config_loader():
     working_dir = running_py[:running_py.rfind("/")]
     config.read(os.path.join(working_dir, "ptmm.conf"))
 
-    common_settings = [config["common"]["log-level"], config["common"]["wecom"],
-                       [x.strip() for x in config["common"]["block_exts"].split(",")]]
+    common_settings = [config["common"]["wecom"],
+                       [x.strip() for x in config["common"]["block-ext"].split(",")]]
     wecom_settings = []
     if config["common"]["wecom"] == "yes":
         wecom_settings = [config["wecom"]["corp-id"], config["wecom"]["secret"], config["wecom"]["agent-id"],
@@ -41,7 +41,7 @@ class PTMM:
         backup_db()
         common_settings, wecom_settings = config_loader()
         config_path = os.path.join(os.getenv("HOME"), ".config/ptmm/")
-        self.log_level, self.wecom_enable, self.block_exts = common_settings
+        self.wecom_enable, self.block_exts = common_settings
         self.database = MediaDB(os.path.join(config_path, "ptmm.db"))
         self.wecom_settings = wecom_settings
 
@@ -64,7 +64,7 @@ class PTMM:
                     duplicate = 1
         return duplicate
 
-    def _only_macos_hidden_file(self, media_path):
+    def _only_ignore(self, media_path):
         """:return: return if the path only contain '.DS_Store' and '._*' files, 1 for yes, 0 for no"""
         macos_hidden_file_count = 0
         file_count = 0
@@ -73,6 +73,7 @@ class PTMM:
                 file_count += 1
                 if file == ".DS_Store" or file[:2] == "._":
                     macos_hidden_file_count += 1
+
         if file_count == macos_hidden_file_count and file_count != 0:
             result = 1
         else:
@@ -266,7 +267,7 @@ class PTMM:
                     if not os.path.exists(os.path.join(source_path, media_name)):
                         delete_list.append(media_name)
                     # add link and source to delete list if source only contain system hidden file
-                    elif self._only_macos_hidden_file(os.path.join(source_path, media_name)) == 1:
+                    elif self._only_ignore(os.path.join(source_path, media_name)) == 1:
                         delete_list.append(media_name)
                         delete_list_source.append(media_name)
             # delete (and log)
@@ -320,8 +321,6 @@ class PTMM:
                     if confirm == "y" or confirm == "Y" or confirm == "":
                         self._media_add(entry_name=entry_name, new_media_name=add_media_name)
                         print("Added")
-
-        return delete_list, add_list
 
     def media_del_manually(self):
         # list and select entry
