@@ -55,7 +55,7 @@ class MediaDB:
     def entry_edit(self, entry_name, new_entry_name="", new_source_path="", new_link_path=""):
         if new_entry_name != "":
             self.cur.execute(f"""ALTER TABLE "{entry_name}" RENAME TO "{new_entry_name}" """)
-            self.cur.execute("UPDATE entry_path SET entry_name = ? WHERE entry_name = ?", (entry_name, entry_name))
+            self.cur.execute("UPDATE entry_path SET entry_name = ? WHERE entry_name = ?", (new_entry_name, entry_name))
         if new_source_path != "":
             self.cur.execute("UPDATE entry_path SET source_path = ? WHERE entry_name = ?",
                              (new_source_path, entry_name))
@@ -66,6 +66,9 @@ class MediaDB:
         self.cur.execute(
             f"""INSERT INTO "{entry_name}" (media_name, date) VALUES (?, ?)""",
             (media_name, str(datetime.datetime.now())))
+
+    def media_edit(self, entry_name, media_name, new_media_name):
+        self.cur.execute(f"UPDATE {entry_name} SET media_name = ? WHERE media_name = ?", (new_media_name, media_name))
 
     def media_del(self, entry_name, media_name):
         self.cur.execute(f"""DELETE FROM "{entry_name}" WHERE media_name = ?""", (media_name,))
