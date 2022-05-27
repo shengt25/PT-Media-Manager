@@ -12,22 +12,41 @@ def backup_db(max_backup=5):
         if not os.path.exists(os.path.join(config_path, "bak")):
             exe_cmd(["mkdir", "-p", os.path.join(config_path, "bak")])
         if os.path.exists(os.path.join(config_path, "bak", "ptmm.db." + str(max_backup))):
+<<<<<<< HEAD
             exe_cmd(["rm", "-rf", os.path.join(config_path, "bak", "ptmm.db." + str(max_backup))])
+=======
+            exe_cmd(["rm", "-rf", os.path.join(config_path, "bak", "ptmm.db." + str(max_backup))], log_level=0)
+>>>>>>> 9a0d9a5 (database auto backup)
 
         for i in range(1, max_backup):
             if os.path.exists(os.path.join(config_path, "bak", "ptmm.db." + str(max_backup - i))):
                 exe_cmd(["mv", os.path.join(config_path, "bak", "ptmm.db." + str(max_backup - i)),
+<<<<<<< HEAD
                          os.path.join(config_path, "bak", "ptmm.db." + str(max_backup - i + 1))])
         exe_cmd(["cp", os.path.join(config_path, "ptmm.db"), os.path.join(config_path, "bak", "ptmm.db.1")])
+=======
+                         os.path.join(config_path, "bak", "ptmm.db." + str(max_backup - i + 1))],
+                        log_level=0)
+        exe_cmd(["cp", os.path.join(config_path, "ptmm.db"), os.path.join(config_path, "bak", "ptmm.db.1")],
+                log_level=0)
+>>>>>>> 9a0d9a5 (database auto backup)
 
 
 def write_log(content: str):
     if not os.path.isdir(os.path.join(config_path, "log")):
+<<<<<<< HEAD
         exe_cmd(["mkdir", "-p", os.path.join(config_path, "log")])
     date = datetime.now().strftime("%Y-%m-%d")
     date_time = datetime.now().strftime("%Y-%m-%d, %H:%M:%S ")
     with open(os.path.join(config_path, "log", date), "a") as log_file:
         log_file.write(date_time + " " + content + "\n\n")
+=======
+        exe_cmd(["mkdir", "-p", os.path.join(config_path, "log")], log_level=0)
+    date = datetime.now().strftime("%Y-%m-%d")
+    date_time = datetime.now().strftime("%Y-%m-%d, %H:%M:%S ")
+    with open(os.path.join(config_path, "log", date), "a") as log_file:
+        log_file.write(date_time + " " + content + "\n")
+>>>>>>> 9a0d9a5 (database auto backup)
 
 
 def exe_cmd(cmd: list):

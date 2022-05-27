@@ -4,6 +4,7 @@ import sys
 import readline  # Don't delete this, so you can use arrow key when input string
 from datetime import datetime
 from src.C_Database import MediaDB
+<<<<<<< HEAD
 from src.utils import exe_cmd, backup_db, write_log
 from src.C_WeCom import WeCom
 
@@ -16,8 +17,17 @@ def print_help():
           "-a       --add-entry         add entry(source path, target link path)\n"
           "-d       --del-entry         delete entry and delete the target link path\n"
           "-e       --edit-entry        edit entry name, source path or link path\n"
+          "-r       --relocate          rename and relocate media in link path\n"
+          "-m       --merge             merge several media into one directory\n"
           "-lp      --list-path         list all entry path\n"
           "-dm      --del-media         delete media manually(debug)\n")
+=======
+from src.utils import exe_cmd, backup_db
+from src.C_WeCom import WeCom
+
+
+# todo backup
+>>>>>>> 9a0d9a5 (database auto backup)
 
 
 def config_loader():
@@ -41,7 +51,11 @@ class PTMM:
         backup_db()
         common_settings, wecom_settings = config_loader()
         config_path = os.path.join(os.getenv("HOME"), ".config/ptmm/")
+<<<<<<< HEAD
         self.wecom_enable, self.incomplete_ext, self.ignore_ext = common_settings
+=======
+        self.log_level, self.wecom_enable, self.block_exts = common_settings
+>>>>>>> 9a0d9a5 (database auto backup)
         self.database = MediaDB(os.path.join(config_path, "ptmm.db"))
         self.wecom_settings = wecom_settings
 
@@ -276,7 +290,11 @@ class PTMM:
             old_link_path = self.database.path_get(entry_name)[2]
             if os.path.exists(new_link_path):
                 if len(os.listdir(new_link_path)) != 0:
+<<<<<<< HEAD
                     print("\nPath already contains file, please check")
+=======
+                    print("Path already contains file, please check")
+>>>>>>> 9a0d9a5 (database auto backup)
                 else:
                     self.database.entry_edit(entry_name=entry_name, new_link_path=new_link_path)
                     exe_cmd(["rm", "-rf", new_link_path])
@@ -297,7 +315,10 @@ class PTMM:
         # loop for every entry
         for entry_name in entry_all:
             delete_list = []
+<<<<<<< HEAD
             delete_list_source = []
+=======
+>>>>>>> 9a0d9a5 (database auto backup)
             add_list = []
             print(f"\nScanning {entry_name}")
             _, source_path, link_path = self.database.path_get(entry_name=entry_name)
@@ -310,8 +331,16 @@ class PTMM:
                     # add link to delete list if source not exist
                     if not os.path.exists(os.path.join(source_path, media_name)):
                         delete_list.append(media_name)
+<<<<<<< HEAD
                     # add link and source to delete list if source only contain system hidden file
                     elif self._only_system_hidden_file(os.path.join(source_path, media_name)) == 1:
+=======
+                    # delete link and source if source only contain system hidden file
+                    elif self._only_macos_hidden_file(os.path.join(source_path, media_name)) == 1:
+                        exe_cmd(["rm", "-rf", os.path.join(source_path, media_name)])
+                        exe_cmd(["rm", "-rf", os.path.join(link_path, media_name)])
+                        self._media_del(entry_name=entry_name, media_name=media_name)
+>>>>>>> 9a0d9a5 (database auto backup)
                         delete_list.append(media_name)
                         delete_list_source.append(media_name)
             # delete (and log)
@@ -328,6 +357,7 @@ class PTMM:
                     write_log(f"[info] Deleted source: {delete_list_source}")
             # ask for confirmation to delete and no log
             else:
+<<<<<<< HEAD
                 for delete_media_name in delete_list:
                     confirm = input(f"\n----------\nDeleting {delete_media_name} ,confirm? Y/n: ")
                     if confirm == "y" or confirm == "Y" or confirm == "":
@@ -346,6 +376,13 @@ class PTMM:
             # get media name from source path
             media_name_all = os.listdir(source_path)
             # sort by date
+=======
+                print(f"Deleted: {delete_list}")
+
+            # add
+            media_name_all = os.listdir(source_path)
+            # sort
+>>>>>>> 9a0d9a5 (database auto backup)
             media_name_all_sort = []
             for media_name in media_name_all:
                 media_name_all_sort.append(os.path.join(source_path, media_name))
@@ -353,7 +390,11 @@ class PTMM:
             media_name_all = []
             for media_name in media_name_all_sort:
                 media_name_all.append(media_name.replace(source_path + "/", ""))
+<<<<<<< HEAD
             # add to add list
+=======
+
+>>>>>>> 9a0d9a5 (database auto backup)
             for media_name in media_name_all:
                 if not self._check_exist(entry_name=entry_name, media_name=media_name):
                     if self._is_incomplete(media_path=os.path.join(source_path, media_name)) == 0 \
@@ -377,16 +418,94 @@ class PTMM:
     def media_del_manually(self):
         # list and select entry
         entry_name = self._entry_selector()
+<<<<<<< HEAD
         if entry_name == "":
             print("\nCanceled")
             exit(1)
         media_name = self._media_selector(entry_name=entry_name)
+=======
+        self._list_media_formated(ptmm.database.media_get_by_entry(entry_name))
+        # list and select media
+        media_id = input("Please input media id: ")
+        if media_id == "":
+            return 0
+        media_name = self.database.media_get_by_id(entry_name=entry_name, media_id=media_id)[1]
+>>>>>>> 9a0d9a5 (database auto backup)
         # confirm delete
         print("\nDeleting:", media_name)
         confirm = input("\n----------\nConfirm? Y/n: ")
         if confirm == "y" or confirm == "Y" or confirm == "":
             self._media_del(entry_name=entry_name, media_name=media_name)
             print("\nDeleted")
+        else:
+            print("\nCanceled")
+
+    def media_relocate(self):
+        entry_name = self._entry_selector()
+        if entry_name == "":
+            print("\nCanceled")
+            exit(1)
+        media_name = self._media_selector(entry_name=entry_name)
+        if media_name == "":
+            print("\nCanceled")
+            exit(1)
+        new_media_name = input("\n----------\nInput a new name: ")
+        link_path = self.database.path_get(entry_name=entry_name)[2]
+        if new_media_name == "":
+            print("\nCanceled")
+            exit(1)
+        if self._check_exist(entry_name=entry_name, media_name=new_media_name) == 0:
+            exe_cmd(["mv", os.path.join(link_path, media_name), os.path.join(link_path, new_media_name)])
+            self.database.media_edit(entry_name, media_name, new_media_name)
+            print(f"\nRelocated from: {media_name}\nto: {new_media_name}")
+        else:
+            print("\nName already exist")
+            exit(1)
+
+    def media_merge(self):
+        # select entry
+        entry_name = self._entry_selector()
+        if entry_name == "":
+            print("\nCanceled")
+            exit(1)
+        # select name
+        merge_names = []
+        media_name = self._media_selector(entry_name=entry_name)
+        while media_name != "":
+            merge_names.append(media_name)
+            media_name = self._media_selector(entry_name=entry_name,
+                                              addition_msg="\n----------\nSelected: " + str(merge_names))
+        if len(merge_names) <= 1:
+            print("\nNeed at least two media")
+            exit(1)
+        # input new name
+        new_media_name = input("\n----------\nInput the name after merge: ")
+        if new_media_name == "":
+            print("\nCanceled")
+            exit(1)
+        elif self._check_exist(entry_name=entry_name, media_name=media_name) == 1:
+            print("\nName already exist")
+            exit(1)
+        # ready to merge
+        confirm = input(f"\n----------\nReady to merge:\n{merge_names}\n\ninto:{new_media_name}.\nConfirm? Y/n")
+        if confirm == "y" or confirm == "Y" or confirm == "":
+            # merge
+            source_path = self.database.path_get(entry_name=entry_name)[2]
+            link_path = self.database.path_get(entry_name=entry_name)[2]
+            exe_cmd(["mkdir", "-p", os.path.join(link_path, new_media_name)])
+            for merge_name in merge_names:
+                # depending on source file, single file to file, dir to sub-dir
+                try:
+                    is_file = os.path.isfile(os.path.join(source_path, merge_name))
+                except:
+                    # already merged
+                    is_file = True
+                if is_file:
+                    exe_cmd(["mv", os.path.join(link_path, merge_name) + "/*", os.path.join(link_path, new_media_name)])
+                else:
+                    exe_cmd(["mv", os.path.join(link_path, merge_name), os.path.join(link_path, new_media_name)])
+                self.database.media_del(entry_name=entry_name, media_name=merge_name)
+            self.database.media_insert(entry_name=entry_name, media_name=new_media_name)
         else:
             print("\nCanceled")
 
@@ -415,6 +534,10 @@ if __name__ == "__main__":
             ptmm.entry_del()
         elif argv == "-e" or argv == "--edit-entry":
             ptmm.entry_edit()
+        elif argv == "-r" or argv == "--relocate":
+            ptmm.media_relocate()
+        elif argv == "-m" or argv == "--merge":
+            ptmm.media_merge()
         elif argv == "-lp" or argv == "--list-path":
             ptmm.list_path_all()
         elif argv == "-dm" or argv == "--del-media-manually":

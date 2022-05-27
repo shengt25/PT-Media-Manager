@@ -22,7 +22,11 @@ class MediaDB:
 
     def path_get(self, entry_name):
         """:return: list [entry_name, source_path, link_path]"""
+<<<<<<< HEAD:src/C_Database.py
         self.cur.execute("SELECT * FROM entry_path WHERE entry_name = ?", (entry_name,))
+=======
+        self.cur.execute("SELECT * FROM entry_path WfHERE entry_name = ?", (entry_name,))
+>>>>>>> 9a0d9a5 (database auto backup):src/C_Media_DB.py
         return self.cur.fetchall()[0]
 
     def entry_create(self, entry_name, source_path, link_path):
@@ -66,6 +70,9 @@ class MediaDB:
         self.cur.execute(
             f"""INSERT INTO "{entry_name}" (media_name, date) VALUES (?, ?)""",
             (media_name, str(datetime.datetime.now())))
+
+    def media_edit(self, entry_name, media_name, new_media_name):
+        self.cur.execute(f"UPDATE {entry_name} SET media_name = ? WHERE media_name = ?", (new_media_name, media_name))
 
     def media_del(self, entry_name, media_name):
         self.cur.execute(f"""DELETE FROM "{entry_name}" WHERE media_name = ?""", (media_name,))
