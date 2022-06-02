@@ -16,8 +16,7 @@ def print_help():
           "-a       --add-entry         add entry(source path, target link path)\n"
           "-d       --del-entry         delete entry and delete the target link path\n"
           "-e       --edit-entry        edit entry name, source path or link path\n"
-          "-r       --relocate          rename and relocate media in link path\n"
-          "-m       --merge             merge several media into one directory\n"
+          "-c       --check-link        check if connections of all file's hardlink correct i.e. they're same file\n"
           "-lp      --list-path         list all entry path\n"
           "-dm      --del-media         delete media manually(debug)\n")
 
@@ -46,6 +45,7 @@ class PTMM:
         self.wecom_enable, self.incomplete_ext, self.ignore_ext = common_settings
         self.database = MediaDB(os.path.join(config_path, "ptmm.db"))
         self.wecom_settings = wecom_settings
+        self.kodi_file = ["theme.mp3", ".jpg", ".nfo"]
 
     def _wecom_msg(self, contents):
         corp_id = self.wecom_settings[0]
@@ -55,6 +55,22 @@ class PTMM:
         wecom = WeCom(corp_id=corp_id, secret=secret, agent_id=agent_id)
         for user_id in user_ids:
             wecom.send_message(wecom_id=user_id, msg_type="text", contents=contents)
+
+    def _check_ext(self, filename):
+        result = 0
+        for ext in self.ignore_ext:
+            if filename[-1 * len(ext):] == ext:
+                result = 1
+                break
+        return result
+
+    def _check_kodi_file(self, filename):
+        result = 0
+        for ext in self.kodi_file:
+            if filename[-1 * len(ext):] == ext:
+                result = 1
+                break
+        return result
 
     def _check_exist(self, entry_name, media_name):
         """:return: return if the name is duplicated, 1 for yes, 0 for no"""
@@ -66,12 +82,10 @@ class PTMM:
                     duplicate = 1
         return duplicate
 
-    def _system_hidden_file(self, media_path: str):
+    def _system_hidden_file(self, filename: str):
         result = 0
-        if os.path.isfile(media_path):
-            filename = media_path[media_path.rfind("/") + 1:]
-            if filename == ".DS_Store" or filename[:2] == "._":
-                result = 1
+        if filename == ".DS_Store" or filename[:2] == "._":
+            result = 1
         return result
 
     def _only_system_hidden_file(self, media_path):
@@ -83,7 +97,7 @@ class PTMM:
             for root, dirs, files in os.walk(media_path):
                 for file in files:
                     file_count += 1
-                    if self._system_hidden_file(os.path.join(root, file)) == 1:
+                    if self._system_hidden_file(file) == 1:
                         system_hidden_file_count += 1
             if file_count == system_hidden_file_count:
                 result = 1
@@ -119,14 +133,9 @@ class PTMM:
             for root, dirs, files in os.walk(os.path.join(source_path, new_media_name)):
                 exe_cmd(["mkdir", "-p", root.replace(source_path, link_path, 1)])
                 for file in files:
-                    for ext in self.ignore_ext:
-                        if file[-1 * len(ext):] == ext or self._system_hidden_file(str(os.path.join(root, file))) == 1:
-                            files.remove(file)
-                            break
-
-                for file in files:
-                    exe_cmd(
-                        ["ln", os.path.join(root, file), os.path.join(root, file).replace(source_path, link_path, 1)])
+                    if self._check_ext(filename=file) == 0 and self._system_hidden_file(str(file)) == 0:
+                        full_file_path = os.path.join(root, file)
+                        exe_cmd(["ln", full_file_path, full_file_path.replace(source_path, link_path, 1)])
         else:
             exit(1)
         self.database.media_insert(media_name=new_media_name, entry_name=entry_name)
@@ -142,18 +151,18 @@ class PTMM:
         current_entry_name = ptmm.database.entry_get()
         for index, entry_name_ in enumerate(current_entry_name):
             print(f"{index}: {entry_name_}")
-        entry_index = input("\nPlease select an entry: ")
+        entry_index = input("\n----------\nPlease select an entry, empty to return: ")
         try:
             entry_name = current_entry_name[int(entry_index)]
         except:
             entry_name = ""
         return entry_name
 
-    def _media_selector(self, entry_name):
+    def _media_selector(self, entry_name, addition_msg=""):
         # list and select media
         self._list_media_formated(ptmm.database.media_get_by_entry(entry_name))
         # list and select media
-        media_id = input("Please input media id: ")
+        media_id = input(addition_msg + "\n----------\nPlease input media id, empty to return: ")
         try:
             media_name = self.database.media_get_by_id(entry_name=entry_name, media_id=media_id)[1]
         except:
@@ -167,11 +176,13 @@ class PTMM:
         width_all = int(0.9 * terminal_width - 2 * 6)
         width_date = len(str(datetime.now())[:-7])
         width_name = width_all - width_id - width_date
+        all_count = 0
         for data in data_raw:
             if type(data) != list:
                 print(f"\n[{data}]")
             else:
-                print(f"total: {len(data)}")
+                all_count += len(data)
+                print(f"(count: {len(data)})")
                 print(f"{'':-<{width_all + 2 * 6 + 4}}")
                 print(f"|  {'id':<{width_id + 2}}|  {'date':<{width_date + 2}}|  {'name':<{width_name + 2}}")
                 print(f"{'':-<{width_id + width_date + width_name + 2 * 6 + 4}}")
@@ -194,6 +205,7 @@ class PTMM:
                         width_name_done += width_name
                         width_name_remain -= width_name
                     print(f"{'':-<{width_id + width_name + width_date + 2 * 6 + 4}}")
+        print("All media count:", all_count)
 
     def list_path_all(self):
         entry_all = self.database.entry_get()
@@ -206,32 +218,32 @@ class PTMM:
 
     def entry_add(self):
         # entry name no duplicated
-        new_entry_name = input("Please input new entry name: ")
+        new_entry_name = input("\n----------\nPlease input new entry name: ")
         if new_entry_name == "":
-            print("Canceled")
+            print("\nCanceled")
             exit(1)
         current_entry_all = self.database.entry_get()
         if new_entry_name in current_entry_all:
-            print(f"{new_entry_name} already exist")
+            print(f"\n{new_entry_name} already exist")
             exit(1)
         # source path no duplicated
-        new_source_path = input("Please input source path: ")
+        new_source_path = input("\n----------\nPlease input source path: ")
         if new_source_path == "":
-            print("Canceled")
+            print("\nCanceled")
             exit(1)
         for current_entry in current_entry_all:
             current_source_path = self.database.path_get(current_entry)[1]
             if current_source_path == new_source_path:
-                print(f"This path have already been used by {current_entry}")
+                print(f"\nThis path have already been used by {current_entry}")
                 exit(1)
         # link path no duplicated
-        new_link_path = input("Please input target path: ")
+        new_link_path = input("\n----------\nPlease input target path: ")
         if new_link_path == "":
             exit(1)
         for current_entry in current_entry_all:
             current_link_path = self.database.path_get(current_entry)[2]
             if current_link_path == new_link_path:
-                print(f"This path have already been used by {current_entry}")
+                print(f"\nThis path have already been used by {current_entry}")
                 exit(1)
         # remove ending '/'
         while new_source_path[-1] == "/":
@@ -246,39 +258,39 @@ class PTMM:
     def entry_del(self):
         entry_name = self._entry_selector()
         if entry_name == "":
-            print("Canceled")
+            print("\nCanceled")
             exit(1)
-        print(f"All hard link files in {entry_name} will be *** DELETED ***. (Original files will NOT be deleted)")
-        confirm = input("Confirm? y/N: ")
+        print(f"\nAll hard link files in {entry_name} will be *** DELETED ***. (Original files will NOT be deleted)")
+        confirm = input("\n----------\nConfirm? y/N: ")
         if confirm == "y" or confirm == "Y":
             link_path = self.database.path_get(entry_name)[2]
             exe_cmd(["rm", "-rf", link_path])
             self.database.entry_del(entry_name)
-            print("Deleted")
+            print("\nDeleted")
         else:
-            print("Canceled")
+            print("\nCanceled")
 
     def entry_edit(self):
         entry_name = self._entry_selector()
         if entry_name == "":
-            print("Canceled")
+            print("\nCanceled")
             exit(1)
         # new entry name
-        new_entry_name = input("New entry name (leave blank to keep):")
+        new_entry_name = input("\n----------\nNew entry name (leave blank to keep):")
         if new_entry_name != "":
             self.database.entry_edit(entry_name=entry_name, new_entry_name=new_entry_name)
             entry_name = new_entry_name
         # new source path
-        new_source_path = input("New source path (leave blank to keep):")
+        new_source_path = input("\n----------\nNew source path (leave blank to keep):")
         if new_source_path != "":
             self.database.entry_edit(entry_name=entry_name, new_source_path=new_source_path)
         # new link path
-        new_link_path = input("New link path (leave blank to keep):")
+        new_link_path = input("\n----------\nNew link path (leave blank to keep):")
         if new_link_path != "":
             old_link_path = self.database.path_get(entry_name)[2]
             if os.path.exists(new_link_path):
                 if len(os.listdir(new_link_path)) != 0:
-                    print("Path already contains file, please check")
+                    print("\nPath already contains file, please check")
                 else:
                     self.database.entry_edit(entry_name=entry_name, new_link_path=new_link_path)
                     exe_cmd(["rm", "-rf", new_link_path])
@@ -288,11 +300,11 @@ class PTMM:
                 exe_cmd(["mv", old_link_path, new_link_path])
 
         if new_source_path != "":
-            confirm = input("Source path changed, re-scan now? Y/n: ")
+            confirm = input("\n----------\nSource path changed, re-scan now? Y/n: ")
             if confirm == "y" or confirm == "Y" or confirm == "":
                 self.media_scan()
             else:
-                print("Canceled")
+                print("\nCanceled")
 
     def media_scan(self, silent=False):
         entry_all = self.database.entry_get()
@@ -331,19 +343,19 @@ class PTMM:
             # ask for confirmation to delete and no log
             else:
                 for delete_media_name in delete_list:
-                    confirm = input(f"Deleting {delete_media_name} ,confirm? Y/n: ")
+                    confirm = input(f"\n----------\nDeleting {delete_media_name} ,confirm? Y/n: ")
                     if confirm == "y" or confirm == "Y" or confirm == "":
                         self._media_del(entry_name=entry_name, media_name=delete_media_name)
-                        print("Deleted")
+                        print("\nDeleted")
                     else:
-                        print("Skipped")
+                        print("\nSkipped")
                 for delete_media_name in delete_list_source:
-                    confirm = input(f"Deleting {delete_media_name} (FROM SOURCE) ,confirm? Y/n: ")
+                    confirm = input(f"\n----------\nDeleting {delete_media_name} (FROM SOURCE) ,confirm? Y/n: ")
                     if confirm == "y" or confirm == "Y" or confirm == "":
                         exe_cmd(["rm", "-rf", os.path.join(source_path, delete_media_name)])
-                        print("Deleted")
+                        print("\nDeleted")
                     else:
-                        print("Skipped")
+                        print("\nSkipped")
 
             # get media name from source path
             media_name_all = os.listdir(source_path)
@@ -360,7 +372,7 @@ class PTMM:
                 if not self._check_exist(entry_name=entry_name, media_name=media_name):
                     if self._is_incomplete(media_path=os.path.join(source_path, media_name)) == 0 \
                             and self._only_system_hidden_file(media_path=os.path.join(source_path, media_name)) == 0 \
-                            and self._system_hidden_file(media_path=os.path.join(source_path, media_name)) == 0:
+                            and self._system_hidden_file(filename=media_name) == 0:
                         add_list.append(media_name)
             # add (and log)
             if silent:
@@ -369,91 +381,78 @@ class PTMM:
                     write_log(f"[info] Added: {add_media_name}")
             else:
                 for add_media_name in add_list:
-                    confirm = input(f"Adding {add_media_name}, confirm? Y/n: ")
+                    confirm = input(f"\n----------\nAdding {add_media_name}, confirm? Y/n: ")
                     if confirm == "y" or confirm == "Y" or confirm == "":
                         self._media_add(entry_name=entry_name, new_media_name=add_media_name)
-                        print("Added")
+                        print("\nAdded")
                     else:
-                        print("Skipped")
+                        print("\nSkipped")
 
     def media_del_manually(self):
         # list and select entry
         entry_name = self._entry_selector()
         if entry_name == "":
-            print("Canceled")
+            print("\nCanceled")
             exit(1)
         media_name = self._media_selector(entry_name=entry_name)
         # confirm delete
-        print("Deleting:", media_name)
-        confirm = input("Confirm? Y/n: ")
+        print("\nDeleting:", media_name)
+        confirm = input("\n----------\nConfirm? Y/n: ")
         if confirm == "y" or confirm == "Y" or confirm == "":
             self._media_del(entry_name=entry_name, media_name=media_name)
-            print("Deleted")
+            print("\nDeleted")
         else:
-            print("Canceled")
+            print("\nCanceled")
 
-    def media_relocate(self):
-        entry_name = self._entry_selector()
-        if entry_name == "":
-            print("Canceled")
-            exit(1)
-        media_name = self._media_selector(entry_name=entry_name)
-        if media_name == "":
-            print("Canceled")
-            exit(1)
-        new_media_name = input("Input a new name: ")
-        link_path = self.database.path_get(entry_name=entry_name)[2]
-        if new_media_name == "":
-            print("Canceled")
-            exit(1)
-        if self._check_exist(entry_name=entry_name, media_name=media_name) == 0:
-            exe_cmd(["mv", os.path.join(link_path, media_name), os.path.join(link_path, new_media_name)])
-            self.database.media_edit(entry_name, media_name, new_media_name)
-        else:
-            print("Name already exist")
-            exit(1)
+    def check_data(self):
+        inode_error = []
+        media_count = 0
+        entry_name_all = self.database.entry_get()
+        for entry_name in entry_name_all:
+            media_data_all = self.database.media_get_by_entry(entry_name=entry_name)
+            _, source_path, link_path = self.database.path_get(entry_name=entry_name)
+            for media_data in media_data_all:
+                media_name = media_data[1]
+                print(f"checking {media_name}...")
+                media_count += 1
+                inode_source = []
+                inode_link = []
+                dict_link = {}
 
-    def media_merge(self):
-        # select entry
-        entry_name = self._entry_selector()
-        if entry_name == "":
-            print("Canceled")
-            exit(1)
-        # select name
-        merge_names = []
-        media_name = self._media_selector(entry_name=entry_name)
-        while media_name != "":
-            merge_names.append(media_name)
-            media_name = self._media_selector(entry_name=entry_name)
-        if len(merge_names) <= 1:
-            print("Need at least two media")
-            exit(1)
-        # input new name
-        new_media_name = input("Input the name after merge: ")
-        if new_media_name == "":
-            print("Canceled")
-            exit(1)
-        elif self._check_exist(entry_name=entry_name, media_name=media_name) == 1:
-            print("Name already exist")
-            exit(1)
-        # ready to merge
-        confirm = input(f"Ready to merge {merge_names} into {new_media_name}? confirm? Y/n")
-        if confirm == "y" or confirm == "Y":
-            # merge
-            source_path = self.database.path_get(entry_name=entry_name)[2]
-            link_path = self.database.path_get(entry_name=entry_name)[2]
-            exe_cmd(["mkdir", "-p", os.path.join(link_path, new_media_name)])
-            for merge_name in merge_names:
-                # depending on source file, single file to file, dir to sub-dir
-                is_file = os.path.isfile(os.path.join(source_path, merge_name))
-                if is_file:
-                    exe_cmd(["mv", os.path.join(link_path, merge_name) + "/*", os.path.join(link_path, new_media_name)])
+                # single source file
+                if os.path.isfile(os.path.join(source_path, media_name)):
+                    full_file_path = os.path.join(source_path, media_name)
+                    inode = os.stat(full_file_path).st_ino
+                    inode_source.append(inode)
                 else:
-                    exe_cmd(["mv", os.path.join(link_path, merge_name), os.path.join(link_path, new_media_name)])
-                self.database.media_del(entry_name=entry_name, media_name=merge_name)
-            self.database.media_insert(entry_name=entry_name, media_name=new_media_name)
+                    for root, dirs, files in os.walk(os.path.join(source_path, media_name)):
+                        for file in files:
+                            if self._check_ext(filename=file) == 0 and \
+                                    self._check_kodi_file(filename=file) == 0 and \
+                                    self._system_hidden_file(filename=str(file)) == 0:
+                                full_file_path = os.path.join(root, file)
+                                inode_source.append(os.stat(full_file_path).st_ino)
+
+                for root, dirs, files in os.walk(os.path.join(link_path, media_name)):
+                    for file in files:
+                        if self._check_ext(filename=file) == 0 and \
+                                self._check_kodi_file(filename=file) == 0 and \
+                                self._system_hidden_file(filename=str(file)) == 0:
+                            full_file_path = os.path.join(root, file)
+                            inode = os.stat(full_file_path).st_ino
+                            inode_link.append(inode)
+                            dict_link[inode] = full_file_path
+
+                for inode in inode_link:
+                    if inode not in inode_source:
+                        inode_error.append(dict_link[inode])
+        if len(inode_error) == 0:
+            print(f"\nAll {media_count} done, no error")
         else:
-            print("Canceled")
+            print(f"\nAll {media_count} done, error(s):")
+            for file in inode_error:
+                print(file)
+            print("\nConsider re-add these media or manually make new hard link")
 
     def commit(self):
         self.database.commit()
@@ -480,14 +479,12 @@ if __name__ == "__main__":
             ptmm.entry_del()
         elif argv == "-e" or argv == "--edit-entry":
             ptmm.entry_edit()
-        elif argv == "-r" or argv == "--relocate":
-            ptmm.media_relocate()
-        elif argv == "-m" or argv == "--merge":
-            ptmm.media_merge()
         elif argv == "-lp" or argv == "--list-path":
             ptmm.list_path_all()
         elif argv == "-dm" or argv == "--del-media-manually":
             ptmm.media_del_manually()
+        elif argv == "-c" or argv == "--check-data":
+            ptmm.check_data()
         else:
             print("use -h or --help for help")
     except IndexError:

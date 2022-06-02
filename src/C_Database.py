@@ -67,9 +67,6 @@ class MediaDB:
             f"""INSERT INTO "{entry_name}" (media_name, date) VALUES (?, ?)""",
             (media_name, str(datetime.datetime.now())))
 
-    def media_edit(self, entry_name, media_name, new_media_name):
-        self.cur.execute(f"UPDATE {entry_name} SET media_name = ? WHERE media_name = ?", (new_media_name, media_name))
-
     def media_del(self, entry_name, media_name):
         self.cur.execute(f"""DELETE FROM "{entry_name}" WHERE media_name = ?""", (media_name,))
 
