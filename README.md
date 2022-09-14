@@ -10,7 +10,7 @@ Clone 此项目，使用终端运行：
 
 Step 1: `python3 ptmm.py -a`，添加媒体库分类规则。（分类名称、原路径和目标路径）
 
-Step 2: `python3 ptmm.py -s`，将扫描新增或删除的媒体，自动修改媒体库。
+Step 2: `python3 ptmm.py -s`，将扫描新增或删除的媒体，自动同步媒体库。
 
 Step 3: `python3 ptmm.py -l`，试试看，列出目前媒体库的内容吧。
 
@@ -53,17 +53,19 @@ incomplete-ext = .part, .!qB
 
 # 原理
 
-由于（PT/BT）下载完成后，需要保留文件做种，不能随意修改文件名、修改或覆盖不重要的文件，例如nfo文件。
+由于（PT/BT）下载完成后，如果要做种，原文件不能有任何修改。这时候如果你需要改名，修改nfo文件等操作，就可以使用本程序。
 
-此程序将建立一个新的媒体库，创建分类规则后，就可以自动在规则中检查原文件，在库目录中创建/删除硬连接，经过硬连接的文件不占用额外空间，可以改名、删除，不影响原文件，（但不可以修改内容）。并且可以在新目录创建nfo文件等，不用担心重名。
+此程序将建立一个新的媒体库，创建分类规则，就可以自动检查原目录，在库目录中创建/删除硬连接。经过硬连接的文件不占用额外空间，可以改名、删除，不影响原文件。并且可以在新目录创建nfo文件等，不用担心重名。
+**注意！** 不可以编辑硬连接之后的文件，因为本质上原文件和硬连接指向同一块数据，修改任何一方，硬连接和原文件都会同步。如果需要修改，请复制原文件，而不是创建硬连接。
+并且，硬连接必须和原文件在同一块硬盘之下。
 
 例如，使用默认配置，并建立如下分类规则：
 
 | 名称   | 原目录                 | 库目录                  |
 | ------ | ---------------------- | ----------------------- |
-| movies | /media/download/movies | /media/video-lib/movies |
-| tv     | /media/download/tv     | /media/video-lib/tv/    |
-| music  | /media/download/music  | /media/lib/music        |
+| movies | /download/movies | /media/video-lib/movies |
+| tv     | /download/tv     | /media/video-lib/tv/    |
+| music  | /download/music  | /media/lib/music        |
 
 扫描后，将按照如下方式建立硬连接。
 
@@ -155,15 +157,17 @@ This program aims to create an **media library via hard link**. You can create n
 
 (The library is made of hard links, they don't use extra space in disk and can be renamed or deleted without influencing the original files. And, you can also add any new files such as .nfo file in the library.)
 
-**ATTENTION**:  The hard links can NOT be edited by other software directly, because the hard link and original file point to the same data block in disk, editing one of them means editing all. If you do want to edit one, please make a copy of original file instead of making hard link. 
+**ATTENTION**:  
+The hard links should NOT be edited directly, because the hard link and original file point to the same data block in disk, editing one of them means editing all. If you want to do so, please make a copy of original file instead of making hard link.  
+Plus, the hard links and original files should be in the same disk.
 
 For example, with default config, given the following entries:
 
 | name   | source path            | library path            |
 | ------ | ---------------------- | ----------------------- |
-| movies | /media/download/movies | /media/video-lib/movies |
-| tv     | /media/download/tv     | /media/video-lib/tv/    |
-| music  | /media/download/music  | /media/lib/music        |
+| movies | /download/movies | /media/video-lib/movies |
+| tv     | /download/tv     | /media/video-lib/tv/    |
+| music  | /download/music  | /media/lib/music        |
 
 After scanning, the program will create hard links:
 
