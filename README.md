@@ -1,4 +1,5 @@
 # PT-media-manager
+For the English version, click [readme](https://github.com/shengt25/PT-Media-Manager/tree/main#info) or scroll down.
 
 这是PT下载文件库的管理工具，通过创建和管理硬连接，避免PT下载的文件不便改名、移动或覆盖nfo内容等问题，方便配合tinyMediaManager刮削本地nfo。程序基于python3.  
 
@@ -12,7 +13,7 @@ Step 1: `python3 ptmm.py -a`，添加媒体库分类规则。（分类名称、�
 
 Step 2: `python3 ptmm.py -s`，将扫描新增或删除的媒体，自动同步媒体库。
 
-Step 3: `python3 ptmm.py -l`，试试看，列出目前媒体库的内容吧。
+Step 3: `python3 ptmm.py -l`，列出目前媒体库的内容。
 
 如果需要修改、删除媒体库分类等其他操作，运行`python3 ptmm.py -参数`，详见下列表。
 
@@ -70,25 +71,24 @@ incomplete-ext = .part, .!qB
 扫描后，将按照如下方式建立硬连接。
 
 ```
-/download/movies/1/1.mkv -----------> /media/video-lib/movies/1.mkv
-................../1.nfo
+/download/movies/1/1.mkv   ->   /media/video-lib/movies/1.mkv
+................../1.nfo        忽略(文件类型)
 
-/download/movies/2/2.avi -----------> /media/video-lib/movies/2.avi
-................../2.jpg
+/download/movies/2/2.avi   ->   /media/video-lib/movies/2.avi
+................../2.jpg        忽略(文件类型)
 
-/download/tv/1/s1e1.mkv ------------> /media/video-lib1/tv/s1e1.mkv
-............../s1e2.mkv ------------> /media/video-lib1/tv/s1e2.mkv
-............../s1e3.mkv ------------> /media/video-lib1/tv/s1e3.mkv
-............../1.nfo
-............../1.png
+/download/tv/1/s1e1.mkv    ->   /media/video-lib1/tv/s1e1.mkv
+............../s1e2.mkv    ->   /media/video-lib1/tv/s1e2.mkv
+............../s1e3.mkv    ->   /media/video-lib1/tv/s1e3.mkv
+............../1.nfo            忽略(文件类型)
+............../1.png            忽略(文件类型)
 
-/download/music/a1/1.mp3
-................../2.mp3.part
-（整个a1文件夹被忽略，因为包含未完成文件）
+/download/music/a1/1.mp3        忽略(目录包含未完成文件)
+................../2.mp3.part   忽略(目录包含未完成文件)
+                                (备注：整个a1文件夹被忽略，因为包含未完成文件夹)
 
-/download/other/test.zip
-/download/document/1.docx
-（忽略，因为没有对应分类规则）
+/download/other/test.zip        忽略(无对应分类规则)
+/download/document/1.docx       忽略(无对应分类规则)
 ```
 
 
@@ -108,7 +108,7 @@ Step 1: `python3 ptmm.py -a`, Add media entry. (name, source entry-path, library
 
 Step 2: `python3 ptmm.py -s`, Scan (add and delete) media, and sync with library.
 
-Step 3: `python3 ptmm.py -l`, Have a try, list all media.
+Step 3: `python3 ptmm.py -l`, List all media.
 
 If you need to modify, delete and do other operations, run `python3 ptmm.py -parameter` as listed below:
 
@@ -170,25 +170,23 @@ For example, with default config, given the following entries:
 | music  | /download/music  | /media/lib/music        |
 
 After scanning, the program will create hard links:
-
 ```
-/download/movies/1/1.mkv -----------> /media/video-lib/movies/1.mkv
-................../1.nfo
+/download/movies/1/1.mkv   ->   /media/video-lib/movies/1.mkv
+................../1.nfo        ignore(file type)
 
-/download/movies/2/2.avi -----------> /media/video-lib/movies/2.avi
-................../2.jpg
+/download/movies/2/2.avi   ->   /media/video-lib/movies/2.avi
+................../2.jpg        ignore(file type)
 
-/download/tv/1/s1e1.mkv ------------> /media/video-lib1/tv/s1e1.mkv
-............../s1e2.mkv ------------> /media/video-lib1/tv/s1e2.mkv
-............../s1e3.mkv ------------> /media/video-lib1/tv/s1e3.mkv
-............../1.nfo
-............../1.png
+/download/tv/1/s1e1.mkv    ->   /media/video-lib1/tv/s1e1.mkv
+............../s1e2.mkv    ->   /media/video-lib1/tv/s1e2.mkv
+............../s1e3.mkv    ->   /media/video-lib1/tv/s1e3.mkv
+............../1.nfo            ignore(file type)
+............../1.png            ignore(file type)
 
-/download/music/a1/1.mp3
-................../2.mp3.part
-(entire folder a1 ignored for containing incomplete file)
+/download/music/a1/1.mp3        ignore(folder include incomplete file)
+................../2.mp3.part   ignore(folder include incomplete file
+                                (note: entire folder a1 was ignored for containing incomplete file)
 
-/download/other/test.zip
-/download/document/1.docx
-(ignored for no entry for these folders)
+/download/other/test.zip        ignore(no rule)
+/download/document/1.docx       ignore(no rule)
 ```
