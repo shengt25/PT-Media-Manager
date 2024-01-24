@@ -1,21 +1,31 @@
 # PT-media-manager
-For the English version, click [readme](https://github.com/shengt25/PT-Media-Manager/tree/main#info) or scroll down.
+For the English version, click [readme](https://github.com/shengt25/BT-Media-Manager/tree/main#info) or scroll down.
 
-这是PT下载文件库的管理工具，通过创建和管理硬连接，避免PT下载的文件不便改名、移动或覆盖nfo内容等问题，方便配合tinyMediaManager刮削本地nfo。程序基于python3.  
+当PT/BT下载完媒体之后，你可能想在做种的同时：  
+1.修改媒体名称  
+2.覆盖nfo，jpg等非主要文件  
+3.使用tinyMediaManager刮削（会覆盖nfo，jpg文件）  
+...  
 
+但是这样做的话，会导致部分文件名发生变化，nfo，jpg等文件被覆盖，就无法继续做种。
+此工具就是用来解决这个问题的，它会建立一个媒体库，并将文件链接至媒体库中： 
 
+1.原文件保持不变，用于做种  
+2.媒体库中的文件，可以随意改名，不影响原文件  
+3.非媒体文件不会被添加，你可以在媒体库中创建新的jpg，nfo等文件  
+4.放心，由于其原理是使用硬连接，媒体库中的文件不会额外占用硬盘空间  
 
 # 使用方法
 
 Clone 此项目，使用终端运行：
 
-Step 1: `python3 ptmm.py -a`，添加媒体库分类规则。（分类名称、原路径和目标路径）
+Step 1: `python3 ptmm.py -a`，添加新的媒体库分类（分类名称、原路径和目标路径），例如电影，电视剧，音乐  
 
-Step 2: `python3 ptmm.py -s`，将扫描新增或删除的媒体，自动同步媒体库。
+Step 2: `python3 ptmm.py -s`，在原路径中扫描新增或删除的媒体，同步至媒体库  
 
-Step 3: `python3 ptmm.py -l`，列出目前媒体库的内容。
+Step 3: `python3 ptmm.py -l`，列出媒体库的内容  
 
-如果需要修改、删除媒体库分类等其他操作，运行`python3 ptmm.py -参数`，详见下列表。
+如果需要修改、删除媒体库分类等其他操作，运行`python3 ptmm.py -参数`，详见下列表  
 
 常用命令：
 | 参数                  | 描述                                                         |
@@ -98,23 +108,31 @@ incomplete-ext = .part, .!qB
 
 # Info
 
-This is a tool for managing the PT download library.  
-By creating and managing hard links, it avoids the inconvenience of renaming, moving or overwriting the nfo content of the files downloaded from PT. And it is convenient to cooperate with tinyMediaManager to scrape local nfo.  
-The program is based on python3.
+After PT/BT has downloaded the media, you may want to:  
+1. Modify the media name  
+2. Replace other files such as nfo, jpg, etc  
+3. Use tinyMediaManager to scrape (nfo, jpg files will be overwritten)
 
+However, doing so will cause some filenames change; jpg, nfo and other files being overwritten, making it impossible to continue seeding.  
+
+This tool is designed to solve this problem. It will create a media library and link the files to the media library:  
+1. The original file remains unchanged and is used for seeding  
+2. The files in the media library can be renamed, without affecting the original files   
+3. Non-media files will not be added, you can create new jpg, nfo and other files in the media library  
+4. Don’t worry, since it use hard link, the files in the media library will not occupy additional hard disk space  
 
 
 # Usage
 
-Clone this repository, run with terminal:
+Clone this repository, run with terminal:  
 
-Step 1: `python3 ptmm.py -a`, Add media entry. (name, source entry-path, library entry-path)
+Step 1: `python3 ptmm.py -a`, add a new media library category (category name, original path and target path), such as movies, TV series, music  
 
-Step 2: `python3 ptmm.py -s`, Scan (add and delete) media, and sync with library.
+Step 2: `python3 ptmm.py -s`, scan the original path for new or deleted media, and synchronize with media library  
 
-Step 3: `python3 ptmm.py -l`, List all media.
+Step 3: `python3 ptmm.py -l`, lists the contents of the media library  
 
-If you need to modify, delete and do other operations, run `python3 ptmm.py -parameter` as listed below:
+If you need to modify, delete and do other operations, run `python3 ptmm.py -parameter` as listed below:  
 
 Common commands:
 | parameters            | description                                                   |
