@@ -28,23 +28,23 @@ Step 3: `python3 ptmm.py -l`，列出媒体库的内容
 如果需要修改、删除媒体库分类等其他操作，运行`python3 ptmm.py -参数`，详见下列表  
 
 常用命令：
-| 参数                  | 描述                                                         |
+| 选项                  | 描述                                                         |
 | --------------------- | :----------------------------------------------------------- |
-| -a    --add-entry      | 添加一个媒体库分类                                         |
-| -s    --scan           | 扫描新增和删除的媒体，并同步修改媒体库           |
-| -l    --list           | 列出媒体库的所有内容                                         |
-|                       |                                                              |
-| -e    --edit-entry     | 编辑媒体库分类（媒体库文件将被移动）） |
-| -d    --del-entry      | 删除一个媒体库分类（媒体库的整个分类将被删除，原数据不会被删除） |
+| -a             | 添加一个媒体库分类                                         |
+| -s             | 扫描新增和删除的媒体，并同步修改媒体库           |
+| -l             | 列出媒体库的所有内容                                         |
+|                |                                                              |
+| -e             | 编辑媒体库分类（媒体库文件将被移动）） |
+| -d             | 删除一个媒体库分类（媒体库的整个分类将被删除，原数据不会被删除） |
 
 其他命令：
-| 参数                  | 描述                                                         |
+| 选项                  | 描述                                                         |
 | --------------------- | :----------------------------------------------------------- |
-| -ss    --scan-silently | 静默扫描新增和删除的媒体，并同步修改媒体库（无需确认）       |
-| -lp    --list-path     | 列出所有媒体库分类的路径                                     |
-| -c     --check-link     | 检查目标路径是否存在inode错误                                |
-| -dm    --del-media     | 手动删除指定媒体                                             |
-| -h     --help           | 显示此帮助                                                   |
+| -ss         | 静默扫描新增和删除的媒体，并同步修改媒体库（无需确认）       |
+| -lp         | 列出所有媒体库分类的路径                                     |
+| -c          | 检查目标路径是否存在inode错误                                |
+| -dm         | 手动删除指定媒体                                             |
+| -h          | 显示此帮助                                                   |
 
 
 
@@ -135,23 +135,23 @@ Step 3: `python3 ptmm.py -l`, lists the contents of the media library
 If you need to modify, delete and do other operations, run `python3 ptmm.py -parameter` as listed below:  
 
 Common commands:
-| parameters            | description                                                   |
+| options            | description                                                   |
 | --------------------- | :----------------------------------------------------------- |
-| -a    --add-entry      | Add media entry                                         |
-| -s    --scan           | Scan (add and delete) media, and sync with library           |
-| -l    --list           | List all media                                         |
+| -a          | Add media entry                                         |
+| -s               | Scan (add and delete) media, and sync with library           |
+| -l                | List all media                                         |
 |                       |                                                              |
-| -e    --edit-entry     | Edit an entry（file in library will be moved as well）） |
-| -d    --del-entry      | Delete an entry (will delete specific entry-path in library, source file will NOT be deleted) |
+| -e          | Edit an entry（file in library will be moved as well）） |
+| -d           | Delete an entry (will delete specific entry-path in library, source file will NOT be deleted) |
 
 Other commands:
-| parameters            | description                                          |
+| options            | description                                          |
 | --------------------- | :----------------------------------------------------------- |
-| -ss    --scan-silently | Silently scan (add and del) media, and sync to library       |
-| -lp    --list-path     | List all entry-path in library                            |
-| -c     --check-link     | Check are there inode errors in library                     |
-| -dm    --del-media     | Delete specific media in library manually                    |
-| -h     --help           | Show this help message                                      |
+| -ss      | Silently scan (add and del) media, and sync to library       |
+| -lp         | List all entry-path in library                            |
+| -c           | Check are there inode errors in library                     |
+| -dm          | Delete specific media in library manually                    |
+| -h                 | Show this help message                                      |
 
 
 # Config
