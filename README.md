@@ -1,5 +1,5 @@
 # PT-media-manager
-For the English version, click [readme](https://github.com/shengt25/BT-Media-Manager/tree/main#info) or scroll down.
+For the English version, click [readme](https://github.com/shengt25/PT-Media-Manager/tree/main#info) or scroll down.
 
 当PT/BT下载完媒体之后，你可能想在做种的同时：  
 1.修改媒体名称  
